@@ -2,9 +2,39 @@ local RoomBuilder = {}
 
 local Workspace = game:GetService("Workspace")
 
+local function createBillboard(parent, size, position, title, body)
+	local part = Instance.new("Part")
+	part.Name = title .. "Board"
+	part.Anchored = true
+	part.Size = size
+	part.Position = position
+	part.Material = Enum.Material.SmoothPlastic
+	part.Color = Color3.fromRGB(35, 40, 50)
+	part.Parent = parent
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "Info"
+	billboard.Size = UDim2.new(0, 260, 0, 120)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.Adornee = part
+	billboard.Parent = part
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = title .. "\n" .. body
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextWrapped = true
+	label.Parent = billboard
+
+	return part
+end
+
 function RoomBuilder:CreateLobby()
 	local lobby = Workspace:FindFirstChild("Lobby") or Instance.new("Folder")
-lobby.Name = "Lobby"
+	lobby.Name = "Lobby"
 	lobby.Parent = Workspace
 
 	for _, child in ipairs(lobby:GetChildren()) do
@@ -20,20 +50,20 @@ lobby.Name = "Lobby"
 	base.Color = Color3.fromRGB(40, 46, 58)
 	base.Parent = lobby
 
-	local welcomeSign = Instance.new("Part")
-	welcomeSign.Name = "WelcomeSign"
-	welcomeSign.Size = Vector3.new(34, 10, 1)
-	welcomeSign.Position = Vector3.new(0, 12, -18)
-	welcomeSign.Anchored = true
-	welcomeSign.Material = Enum.Material.SmoothPlastic
-	welcomeSign.Color = Color3.fromRGB(90, 90, 90)
-	welcomeSign.Parent = lobby
+	local sign = Instance.new("Part")
+	sign.Name = "WelcomeSign"
+	sign.Size = Vector3.new(34, 10, 1)
+	sign.Position = Vector3.new(0, 12, -18)
+	sign.Anchored = true
+	sign.Material = Enum.Material.SmoothPlastic
+	sign.Color = Color3.fromRGB(90, 90, 90)
+	sign.Parent = lobby
 
 	local surfaceGui = Instance.new("SurfaceGui")
 	surfaceGui.Face = Enum.NormalId.Front
 	surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	surfaceGui.PixelsPerStud = 50
-	surfaceGui.Parent = welcomeSign
+	surfaceGui.Parent = sign
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
@@ -44,32 +74,90 @@ lobby.Name = "Lobby"
 	label.TextColor3 = Color3.fromRGB(255, 255, 255)
 	label.Parent = surfaceGui
 
-	local shopArea = Instance.new("Part")
-	shopArea.Name = "ShopArea"
-	shopArea.Size = Vector3.new(18, 1, 12)
-	shopArea.Position = Vector3.new(-50, 2, 0)
-	shopArea.Anchored = true
-	shopArea.Material = Enum.Material.Neon
-	shopArea.Color = Color3.fromRGB(70, 150, 255)
-	shopArea.Parent = lobby
+	local coinPad = Instance.new("Part")
+	coinPad.Name = "CoinDisplayPad"
+	coinPad.Size = Vector3.new(18, 1, 12)
+	coinPad.Position = Vector3.new(-52, 2, -20)
+	coinPad.Anchored = true
+	coinPad.Material = Enum.Material.Neon
+	coinPad.Color = Color3.fromRGB(255, 190, 60)
+	coinPad.Parent = lobby
+	createBillboard(lobby, Vector3.new(6, 2, 1), coinPad.Position + Vector3.new(0, 3, 0), "Coins", "Spend and win more!")
 
-	local rewardArea = Instance.new("Part")
-	rewardArea.Name = "RewardArea"
-	rewardArea.Size = Vector3.new(18, 1, 12)
-	rewardArea.Position = Vector3.new(50, 2, 0)
-	rewardArea.Anchored = true
-	rewardArea.Material = Enum.Material.Neon
-	rewardArea.Color = Color3.fromRGB(255, 175, 0)
-	rewardArea.Parent = lobby
+	local winsPad = Instance.new("Part")
+	winsPad.Name = "WinsLeaderboardPad"
+	winsPad.Size = Vector3.new(18, 1, 12)
+	winsPad.Position = Vector3.new(52, 2, -20)
+	winsPad.Anchored = true
+	winsPad.Material = Enum.Material.Neon
+	winsPad.Color = Color3.fromRGB(105, 255, 150)
+	winsPad.Parent = lobby
+	createBillboard(lobby, Vector3.new(6, 2, 1), winsPad.Position + Vector3.new(0, 3, 0), "Most Wins", "Top players")
 
-	local spectator = Instance.new("Part")
-	spectator.Name = "SpectatorArea"
-	spectator.Size = Vector3.new(30, 1, 20)
-	spectator.Position = Vector3.new(0, 2, 35)
-	spectator.Anchored = true
-	spectator.Material = Enum.Material.SmoothPlastic
-	spectator.Color = Color3.fromRGB(120, 120, 120)
-	spectator.Parent = lobby
+	local roundPad = Instance.new("Part")
+	roundPad.Name = "RoundLeaderboardPad"
+	roundPad.Size = Vector3.new(18, 1, 12)
+	roundPad.Position = Vector3.new(-52, 2, 20)
+	roundPad.Anchored = true
+	roundPad.Material = Enum.Material.Neon
+	roundPad.Color = Color3.fromRGB(140, 120, 255)
+	roundPad.Parent = lobby
+	createBillboard(lobby, Vector3.new(6, 2, 1), roundPad.Position + Vector3.new(0, 3, 0), "Highest Round", "How far you survived")
+
+	local shopPad = Instance.new("Part")
+	shopPad.Name = "ShopPad"
+	shopPad.Size = Vector3.new(18, 1, 12)
+	shopPad.Position = Vector3.new(52, 2, 20)
+	shopPad.Anchored = true
+	shopPad.Material = Enum.Material.Neon
+	shopPad.Color = Color3.fromRGB(70, 150, 255)
+	shopPad.Parent = lobby
+	createBillboard(lobby, Vector3.new(6, 2, 1), shopPad.Position + Vector3.new(0, 3, 0), "Shop", "Skins, trails, effects")
+
+	local spectatorPad = Instance.new("Part")
+	spectatorPad.Name = "SpectatorArea"
+	spectatorPad.Size = Vector3.new(30, 1, 20)
+	spectatorPad.Position = Vector3.new(0, 2, 35)
+	spectatorPad.Anchored = true
+	spectatorPad.Material = Enum.Material.SmoothPlastic
+	spectatorPad.Color = Color3.fromRGB(120, 120, 120)
+	spectatorPad.Parent = lobby
+	createBillboard(lobby, Vector3.new(8, 2, 1), spectatorPad.Position + Vector3.new(0, 3, 0), "Spectators", "Watch the next round")
+
+	local npc = Instance.new("Model")
+	npc.Name = "GuideNPC"
+	local torso = Instance.new("Part")
+	torso.Name = "Torso"
+	torso.Size = Vector3.new(2, 3, 1)
+	torso.Position = Vector3.new(0, 4, -8)
+	torso.Anchored = true
+	torso.Parent = npc
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Size = Vector3.new(2, 2, 2)
+	head.Position = Vector3.new(0, 7, -8)
+	head.Anchored = true
+	head.Parent = npc
+	local hint = Instance.new("Part")
+	hint.Name = "HintBoard"
+	hint.Size = Vector3.new(6, 2, 0.5)
+	hint.Position = Vector3.new(0, 9, -8)
+	hint.Anchored = true
+	hint.Parent = npc
+	local hintGui = Instance.new("SurfaceGui")
+	hintGui.Face = Enum.NormalId.Front
+	hintGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	hintGui.PixelsPerStud = 30
+	hintGui.Parent = hint
+	local hintLabel = Instance.new("TextLabel")
+	hintLabel.Size = UDim2.new(1, 0, 1, 0)
+	hintLabel.BackgroundTransparency = 1
+	hintLabel.Text = "Choose wisely!"
+	hintLabel.Font = Enum.Font.GothamBold
+	hintLabel.TextScaled = true
+	hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	hintLabel.Parent = hintGui
+	npc.Parent = lobby
 
 	return lobby
 end
@@ -121,6 +209,52 @@ function RoomBuilder:CreateChallengeRoom(theme, roomName)
 		wall.Material = Enum.Material.SmoothPlastic
 		wall.Color = baseColor:Lerp(Color3.new(1, 1, 1), 0.15)
 		wall.Parent = room
+	end
+
+	if theme == "Castle" then
+		for _, torchPos in ipairs({Vector3.new(-40, 6, 40), Vector3.new(40, 6, 40), Vector3.new(-40, 6, -40), Vector3.new(40, 6, -40)}) do
+			local torch = Instance.new("Part")
+			torch.Name = "Torch"
+			torch.Size = Vector3.new(1, 4, 1)
+			torch.Position = torchPos
+			torch.Anchored = true
+			torch.Material = Enum.Material.Metal
+			torch.Color = Color3.fromRGB(120, 70, 10)
+			torch.Parent = room
+		end
+	elseif theme == "Volcano" then
+		for _, lavaPos in ipairs({Vector3.new(-35, 1, 0), Vector3.new(35, 1, 0), Vector3.new(0, 1, -35), Vector3.new(0, 1, 35)}) do
+			local lava = Instance.new("Part")
+			lava.Name = "LavaPatch"
+			lava.Size = Vector3.new(12, 1, 12)
+			lava.Position = lavaPos
+			lava.Anchored = true
+			lava.Material = Enum.Material.Neon
+			lava.Color = Color3.fromRGB(255, 90, 20)
+			lava.Parent = room
+		end
+	elseif theme == "Laboratory" then
+		for _, machinePos in ipairs({Vector3.new(-20, 3, 0), Vector3.new(20, 3, 0), Vector3.new(0, 3, -20), Vector3.new(0, 3, 20)}) do
+			local machine = Instance.new("Part")
+			machine.Name = "Machine"
+			machine.Size = Vector3.new(5, 5, 5)
+			machine.Position = machinePos
+			machine.Anchored = true
+			machine.Material = Enum.Material.SmoothPlastic
+			machine.Color = Color3.fromRGB(90, 90, 110)
+			machine.Parent = room
+		end
+	elseif theme == "Underwater" then
+		for _, bubblePos in ipairs({Vector3.new(-30, 4, 0), Vector3.new(30, 4, 0), Vector3.new(0, 4, -30), Vector3.new(0, 4, 30)}) do
+			local bubble = Instance.new("Part")
+			bubble.Name = "Bubble"
+			bubble.Size = Vector3.new(2, 2, 2)
+			bubble.Position = bubblePos
+			bubble.Anchored = true
+			bubble.Material = Enum.Material.Neon
+			bubble.Color = Color3.fromRGB(120, 210, 255)
+			bubble.Parent = room
+		end
 	end
 
 	room.PrimaryPart = floor
@@ -176,7 +310,7 @@ function RoomBuilder:CreateDoors(room, doorCount, safeIndex, onDoorSelected)
 		label.Text = i == safeIndex and "SAFE" or "TRAP"
 		label.TextScaled = true
 		label.Font = Enum.Font.GothamBlack
-		label.TextColor3 = Color3.fromRGB(255,255,255)
+		label.TextColor3 = Color3.fromRGB(255, 255, 255)
 		label.Parent = gui
 
 		local clickDetector = Instance.new("ClickDetector")
