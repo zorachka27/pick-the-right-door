@@ -2,9 +2,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
-local GameConfig = require(script.Parent.GameConfig)
-local DoorFactory = require(script.Parent.DoorFactory)
-local TrapLibrary = require(script.Parent.TrapLibrary)
+local Config = require(script.Parent.GameConfig)
+local RoomBuilder = require(script.Parent.RoomBuilder)
+local PrizeSystem = require(script.Parent.PrizeSystem)
 
 local RoundManager = {}
 RoundManager.__index = RoundManager
@@ -12,224 +12,162 @@ RoundManager.__index = RoundManager
 function RoundManager.new()
 	local self = setmetatable({}, RoundManager)
 	self.CurrentRound = 0
-	self.IntermissionActive = false
-	self.RoomFolder = Workspace:FindFirstChild("ChallengeRooms") or Instance.new("Folder")
-	self.RoomFolder.Name = "ChallengeRooms"
-	self.RoomFolder.Parent = Workspace
-	self.LobbyFolder = Workspace:FindFirstChild("Lobby") or Instance.new("Folder")
-	self.LobbyFolder.Name = "Lobby"
-	self.LobbyFolder.Parent = Workspace
-	self.PlayerData = {}
+	self.ActiveRound = nil
+	self.Lobby = nil
+	self.RoomsFolder = Workspace:FindFirstChild("ChallengeRooms") or Instance.new("Folder")
+	self.RoomsFolder.Name = "ChallengeRooms"
+	self.RoomsFolder.Parent = Workspace
 	self.Remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
 	self.Remotes.Name = "Remotes"
 	self.Remotes.Parent = ReplicatedStorage
-	self.RoundStartRemote = self.Remotes:FindFirstChild("RoundStart") or Instance.new("RemoteEvent")
-	self.RoundStartRemote.Name = "RoundStart"
-	self.RoundStartRemote.Parent = self.Remotes
-	self.ChooseDoorRemote = self.Remotes:FindFirstChild("ChooseDoor") or Instance.new("RemoteEvent")
-	self.ChooseDoorRemote.Name = "ChooseDoor"
-	self.ChooseDoorRemote.Parent = self.Remotes
 	self.RoundStateRemote = self.Remotes:FindFirstChild("RoundState") or Instance.new("RemoteEvent")
 	self.RoundStateRemote.Name = "RoundState"
 	self.RoundStateRemote.Parent = self.Remotes
-	self.ChoiceReceived = {}
-	self.ActiveDoors = {}
-	self.LobbyBuilt = false
+	self.PlayerChoiceRemote = self.Remotes:FindFirstChild("PlayerChoice") or Instance.new("RemoteEvent")
+	self.PlayerChoiceRemote.Name = "PlayerChoice"
+	self.PlayerChoiceRemote.Parent = self.Remotes
+	self.Choices = {}
 	self:BuildLobby()
-	self:ConnectClientEvents()
+	self:ConnectRemoteEvents()
+	self:ConnectPlayerAdded()
 	return self
 end
 
 function RoundManager:BuildLobby()
-	if self.LobbyBuilt then
-		return
+	self.Lobby = Workspace:FindFirstChild("Lobby")
+	if not self.Lobby then
+		self.Lobby = RoomBuilder:CreateLobby()
 	end
-
-	local base = Instance.new("Part")
-	base.Name = "LobbyBase"
-	base.Size = Vector3.new(200, 1, 200)
-	base.Position = Vector3.new(0, 0, 0)
-	base.Anchored = true
-	base.Material = Enum.Material.SmoothPlastic
-	base.Color = Color3.fromRGB(38, 45, 55)
-	base.Parent = self.LobbyFolder
-
-	local sign = Instance.new("Part")
-	sign.Name = "Sign"
-	sign.Size = Vector3.new(30, 10, 1)
-	sign.Position = Vector3.new(0, 12, -18)
-	sign.Anchored = true
-	sign.Material = Enum.Material.SmoothPlastic
-	sign.Color = Color3.fromRGB(80, 80, 80)
-	sign.Parent = self.LobbyFolder
-
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 50
-	gui.Parent = sign
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "PICK THE RIGHT DOOR!"
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Font = Enum.Font.GothamBlack
-	label.Parent = gui
 
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
-			player.Character:PivotTo(CFrame.new(GameConfig.LobbySpawn))
+			player.Character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
 		end
 	end
-
-	self.LobbyBuilt = true
 end
 
-function RoundManager:ConnectClientEvents()
-	self.ChooseDoorRemote.OnServerEvent:Connect(function(player, doorName)
+function RoundManager:ConnectPlayerAdded()
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(character)
+			character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
+		end)
+	end)
+end
+
+function RoundManager:ConnectRemoteEvents()
+	self.PlayerChoiceRemote.OnServerEvent:Connect(function(player, doorName)
 		if not self.ActiveRound or self.ActiveRound.Status ~= "Choosing" then
 			return
 		end
 
-		if self.ActiveRound.Selections[player.UserId] then
+		local index = tonumber(string.match(doorName or "", "(%d+)$"))
+		if not index then
 			return
 		end
 
-		local doorIndex = tonumber(string.match(doorName or "", "(%d+)$")) or 0
-		self.ActiveRound.Selections[player.UserId] = doorIndex
-		self.RoundStateRemote:FireClient(player, "ChoiceLocked", doorIndex)
+		if self.ActiveRound.Choices[player.UserId] then
+			return
+		end
+
+		self.ActiveRound.Choices[player.UserId] = index
+		self.RoundStateRemote:FireClient(player, "ChoiceLocked", index)
 	end)
 end
 
-function RoundManager:GetRoundSettings(round)
-	local doorCount = math.min(GameConfig.MinDoors + math.floor(round / 3), GameConfig.MaxDoors)
-	local timer = math.max(GameConfig.TimerFloor, GameConfig.BaseDecisionTimer - (round - 1) * GameConfig.TimerReductionPerRound)
+function RoundManager:GetRoundConfig(roundNumber)
+	local doorCount = math.clamp(3 + math.floor(roundNumber / 3), Config.MinDoors, Config.MaxDoors)
+	local timer = math.max(Config.TimerFloor, Config.BaseDecisionTimer - (roundNumber - 1) * Config.TimerReductionPerRound)
 	return doorCount, timer
 end
 
-function RoundManager:CreateRoom(theme)
-	local roomFolder = self.RoomFolder:FindFirstChild(theme) or Instance.new("Model")
-	roomFolder.Name = theme
-	roomFolder.Parent = self.RoomFolder
-
-	for _, part in ipairs(roomFolder:GetChildren()) do
-		part:Destroy()
+function RoundManager:SelectTheme()
+	local available = {}
+	for _, world in ipairs(Config.Worlds) do
+		if self.CurrentRound >= world.RequiredWins then
+			for _, theme in ipairs(world.Themes) do
+				available[#available + 1] = theme
+			end
+		end
 	end
 
-	local floor = Instance.new("Part")
-	floor.Name = "Floor"
-	floor.Size = Vector3.new(120, 1, 120)
-	floor.Position = Vector3.new(0, 0, 0)
-	floor.Anchored = true
-	floor.Material = Enum.Material.Slate
-	floor.Color = Color3.fromRGB(70, 80, 90)
-	floor.Parent = roomFolder
-
-	local center = Instance.new("Part")
-	center.Name = "CenterPad"
-	center.Size = Vector3.new(10, 1, 10)
-	center.Position = Vector3.new(0, 1, 0)
-	center.Anchored = true
-	center.Material = Enum.Material.Neon
-	center.Color = Color3.fromRGB(95, 95, 95)
-	center.Parent = roomFolder
-
-	local roomThemeColor = {
-		Castle = Color3.fromRGB(120, 90, 60),
-		Volcano = Color3.fromRGB(180, 70, 40),
-		Laboratory = Color3.fromRGB(60, 110, 180),
-		Underwater = Color3.fromRGB(35, 110, 160),
-		Carnival = Color3.fromRGB(200, 100, 160),
-		Alien = Color3.fromRGB(70, 180, 120),
-		Space = Color3.fromRGB(30, 30, 60),
-	}[theme] or Color3.fromRGB(120, 120, 120)
-
-	for i = -1, 1 do
-		local wall = Instance.new("Part")
-		wall.Name = "Wall"
-		wall.Size = Vector3.new(120, 12, 1)
-		wall.Position = Vector3.new(0, 6, 58 * i)
-		wall.Anchored = true
-		wall.Material = Enum.Material.SmoothPlastic
-		wall.Color = roomThemeColor
-		wall.Parent = roomFolder
+	if #available == 0 then
+		return "Castle"
 	end
 
-	for i = -1, 1 do
-		local wall = Instance.new("Part")
-		wall.Name = "Wall"
-		wall.Size = Vector3.new(1, 12, 120)
-		wall.Position = Vector3.new(58 * i, 6, 0)
-		wall.Anchored = true
-		wall.Material = Enum.Material.SmoothPlastic
-		wall.Color = roomThemeColor
-		wall.Parent = roomFolder
-	end
+	return available[math.random(1, #available)]
+end
 
-	roomFolder.PrimaryPart = floor
-	return roomFolder
+function RoundManager:ClearChallengeRooms()
+	for _, obj in ipairs(self.RoomsFolder:GetChildren()) do
+		obj:Destroy()
+	end
 end
 
 function RoundManager:TeleportPlayersToRoom(room)
-	local spawnPositions = {}
 	for i, player in ipairs(Players:GetPlayers()) do
-		if player.Character then
-			local pos = Vector3.new((i - 1) * 8, 5, 5)
-			spawnPositions[player.UserId] = pos
-			player.Character:PivotTo(CFrame.new(pos + room:GetPivot().Position))
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local offset = Vector3.new((i - 1) * 8, 5, 0)
+			player.Character:PivotTo(CFrame.new(room:GetPivot().Position + offset))
 		end
 	end
-	return spawnPositions
 end
 
 function RoundManager:StartIntermission()
-	self.IntermissionActive = true
 	self.CurrentRound += 1
-	self.RoundStartRemote:FireAllClients("Intermission", self.CurrentRound)
-	for i = GameConfig.IntermissionDuration, 1, -1 do
-		self.RoundStateRemote:FireAllClients("Countdown", i)
-		if i <= 0 then
-			break
-		end
+	self.RoundStateRemote:FireAllClients("Intermission", {
+		Round = self.CurrentRound,
+		Seconds = Config.IntermissionDuration,
+	})
+
+	for second = Config.IntermissionDuration, 1, -1 do
+		self.RoundStateRemote:FireAllClients("IntermissionTick", second)
 		task.wait(1)
 	end
-	self.IntermissionActive = false
+
 	self:StartRound()
 end
 
 function RoundManager:StartRound()
-	local themePool = GameConfig.RoomThemes
-	local theme = themePool[math.random(1, #themePool)]
-	local room = self:CreateRoom(theme)
-	local doorCount, timer = self:GetRoundSettings(self.CurrentRound)
+	local theme = self:SelectTheme()
+	local room = RoomBuilder:CreateChallengeRoom(theme, "Round_" .. self.CurrentRound)
+	local doorCount, timer = self:GetRoundConfig(self.CurrentRound)
 	local safeIndex = math.random(1, doorCount)
 
 	self.ActiveRound = {
+		Round = self.CurrentRound,
 		Theme = theme,
 		DoorCount = doorCount,
 		Timer = timer,
-		Status = "Choosing",
 		SafeIndex = safeIndex,
-		Selections = {},
+		Choices = {},
+		Status = "Choosing",
 		Room = room,
 	}
 
 	self:TeleportPlayersToRoom(room)
-	self.RoundStartRemote:FireAllClients("RoundStart", { theme = theme, round = self.CurrentRound, timer = timer })
-	self.ActiveDoors = DoorFactory:CreateDoors(room, doorCount, safeIndex, function(player, doorModel)
-		if self.ActiveRound and self.ActiveRound.Status == "Choosing" then
-			self.ChooseDoorRemote:FireClient(player, "DoorPicked", doorModel.Name)
-			self.ActiveRound.Selections[player.UserId] = tonumber(string.match(doorModel.Name, "(%d+)$"))
+	self.RoundStateRemote:FireAllClients("RoundStart", {
+		Round = self.CurrentRound,
+		Theme = theme,
+		Timer = timer,
+		DoorCount = doorCount,
+	})
+
+	RoomBuilder:CreateDoors(room, doorCount, safeIndex, function(player, index, door)
+		if self.ActiveRound and self.ActiveRound.Status == "Choosing" and not self.ActiveRound.Choices[player.UserId] then
+			self.ActiveRound.Choices[player.UserId] = index
+			self.PlayerChoiceRemote:FireClient(player, "DoorChosen", door.Name)
+			self.RoundStateRemote:FireAllClients("DoorPicked", {
+				PlayerName = player.Name,
+				DoorIndex = index,
+			})
 		end
 	end)
 
-	for countdown = timer, 1, -1 do
+	for second = timer, 1, -1 do
 		if not self.ActiveRound or self.ActiveRound.Status ~= "Choosing" then
 			return
 		end
-		self.RoundStateRemote:FireAllClients("Timer", countdown)
+		self.RoundStateRemote:FireAllClients("TimerTick", second)
 		task.wait(1)
 	end
 
@@ -243,39 +181,59 @@ function RoundManager:ResolveRound()
 
 	self.ActiveRound.Status = "Resolving"
 	local survivors = {}
+
 	for _, player in ipairs(Players:GetPlayers()) do
-		local selectedDoor = self.ActiveRound.Selections[player.UserId]
-		if selectedDoor == self.ActiveRound.SafeIndex then
+		local selected = self.ActiveRound.Choices[player.UserId]
+		if selected == self.ActiveRound.SafeIndex then
 			survivors[#survivors + 1] = player
+			PrizeSystem:UpdateDoorsSurvived(player, 1)
+			PrizeSystem:UpdateHighestRound(player, self.CurrentRound)
 		else
-			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
-				local trapName = TrapLibrary:GetRandomTrap(self.ActiveRound.Theme)
-				TrapLibrary:TriggerTrap(player, trapName, self.ActiveRound.Room)
+				humanoid.Health = 0
 			end
 		end
+	end
+
+	local reward = Config.Rewards.RoundSurvival + math.floor(self.CurrentRound * 1.4)
+	if #survivors > 0 then
+		for _, player in ipairs(survivors) do
+			PrizeSystem:AwardCoins(player, reward)
+			PrizeSystem:UpdateHighestRound(player, self.CurrentRound)
+		end
+		self.RoundStateRemote:FireAllClients("RoundResult", {
+			Status = "Survivors",
+			SafeIndex = self.ActiveRound.SafeIndex,
+			Count = #survivors,
+			Reward = reward,
+		})
+	else
+		self.RoundStateRemote:FireAllClients("RoundResult", {
+			Status = "NoSurvivors",
+			SafeIndex = self.ActiveRound.SafeIndex,
+			Count = 0,
+		})
 	end
 
 	if #survivors > 0 then
+		local winnerCount = 0
 		for _, player in ipairs(survivors) do
-			local coins = GameConfig.Rewards.SurviveRound + math.floor(self.CurrentRound * 1.5)
-			local leaderstats = player:FindFirstChild("leaderstats")
-			if not leaderstats then
-				leaderstats = Instance.new("Folder")
-				leaderstats.Name = "leaderstats"
-				leaderstats.Parent = player
+			if player == Players:GetPlayers()[1] then
+				winnerCount += 1
 			end
-			local coinsValue = leaderstats:FindFirstChild("Coins") or Instance.new("IntValue")
-			coinsValue.Name = "Coins"
-			coinsValue.Value += coins
-			coinsValue.Parent = leaderstats
 		end
-		self.RoundStateRemote:FireAllClients("RoundResult", { survivors = #survivors, safeDoor = self.ActiveRound.SafeIndex })
-	else
-		self.RoundStateRemote:FireAllClients("RoundResult", { survivors = 0, safeDoor = self.ActiveRound.SafeIndex })
 	end
 
-	task.wait(3)
+	task.wait(4)
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			player.Character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
+		end
+	end
+
 	self.ActiveRound = nil
 	self:StartIntermission()
 end

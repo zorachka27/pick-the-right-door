@@ -1,60 +1,60 @@
 # Pick the Right Door!
 
-A Roblox multiplayer survival game concept and starter codebase for a round-based survival challenge where players must choose the single safe door before the clock runs out.
+A Roblox multiplayer survival game prototype based on the game concept you described. Players spawn in a lobby, wait for the round to start, then choose the single safe door from a set of themed challenge rooms. Survivors earn coins, unlock progression, and keep pushing into harder rounds.
 
-## Included in this repo
+## What is included
 
-- Core server architecture for a round system
-- Room and door generation logic
-- Trap library and effects
-- Coin and round progression foundation
-- Lobby generation scaffold
-- Design notes for worlds, monetization, leaderboards, and future expansion
+- lobby creation scaffolding
+- round/intermission system
+- theme-based challenge rooms
+- door generation and safe-door logic
+- trap triggers for wrong doors
+- coin rewards and leaderstats
+- world unlock system
+- a client HUD for round timer and announcements
+- game design documentation for future expansion
 
-## Roblox Studio setup
+## Roblox Studio usage
 
 1. Create a new Roblox place.
-2. In Roblox Studio, open the Explorer and keep the default `ServerScriptService` and `ReplicatedStorage`.
-3. Copy the scripts from `src/ServerScriptService` into `ServerScriptService`.
-4. Copy the `src/ReplicatedStorage` folder into `ReplicatedStorage`.
-5. Press Play to test the lobby and the round system.
+2. Insert the scripts from the repo into your Roblox place using the same folder structure.
+3. Put `src/ServerScriptService` contents into `ServerScriptService`.
+4. Put `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` into `StarterPlayer > StarterPlayerScripts`.
+5. Start Play mode and test the lobby, round cycle, and door flow.
 
-## Game loop
+## Core game loop
 
-- Lobby spawns players in a common waiting area.
-- Intermission countdown starts.
-- The server chooses a random room theme and safe door.
-- Players click a door before the timer expires.
-- Safe door remains active while wrong doors trigger trap effects.
+- Players spawn in the main lobby.
+- Intermission countdown begins.
+- The server selects a random room theme and safe door.
+- Doors appear in a challenge room.
+- Players have a limited time to choose before the timer expires.
+- Safe door survivors continue.
+- Wrong door picks trigger traps and elimination.
 - Survivors earn coins and advance to the next round.
-- Difficulty rises by increasing door counts and decreasing the timer.
+- Difficulty scales up by adding more doors and reducing timer length.
 
-## Suggested future expansion
+## Included files
 
-- More worlds and themed rooms
-- Cosmetic shop and reward system
-- VIP and developer product hooks
-- Dedicated admin panel and events
-- Extra game modes like Double or Nothing
+- `src/ServerScriptService/GameConfig.lua` — gameplay balancing, world progression, themes, rewards
+- `src/ServerScriptService/PrizeSystem.lua` — coins, wins, round progression, leaderstats
+- `src/ServerScriptService/RoomBuilder.lua` — lobby and challenge room construction
+- `src/ServerScriptService/RoundManager.lua` — round flow and elimination logic
+- `src/ServerScriptService/Bootstrap.server.lua` — bootstraps the game
+- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` — round HUD and announcements
+- `docs/GAME_DESIGN.md` — full game design overview for the project
 
-## Core files
+## Future expansion areas
 
-- `src/ServerScriptService/Bootstrap.server.lua` — starts the game
-- `src/ServerScriptService/RoundManager.lua` — handles rounds and room state
-- `src/ServerScriptService/DoorFactory.lua` — creates doors and trap metadata
-- `src/ServerScriptService/TrapLibrary.lua` — trap definitions and visuals
-- `src/ServerScriptService/GameConfig.lua` — difficulty, rewards, and theme data
+- cosmetic shop
+- door skins and effects
+- VIP/gamepass hooks
+- admin panel
+- daily rewards
+- special events
+- double-or-nothing risk mode
+- world-specific trap variants
 
-## Design summary
+## Notes
 
-This repo gives you an expandable foundation for the game you described, including:
-
-- 3–10 door rooms
-- safe door logic
-- elimination and survivor flow
-- themed challenge rooms
-- rounds scaling over time
-- coin reward structure
-- room/lobby placeholder setup
-
-This is intentionally structured so you can continue building the full lobby, cosmetics, leaderboards, and monetization systems in Roblox Studio.
+This repository is meant to be a practical Roblox prototype foundation. It is designed to be expanded step-by-step into a more polished game with a richer lobby, UI, and monetization system.
