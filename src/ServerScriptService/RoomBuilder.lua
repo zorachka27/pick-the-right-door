@@ -1,6 +1,8 @@
 local RoomBuilder = {}
 
 local Workspace = game:GetService("Workspace")
+local ShopSystem = require(script.Parent.ShopSystem)
+local SpecialEvents = require(script.Parent.SpecialEvents)
 
 local function createBillboard(parent, size, position, title, body)
 	local part = Instance.new("Part")
@@ -158,6 +160,9 @@ function RoomBuilder:CreateLobby()
 	hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	hintLabel.Parent = hintGui
 	npc.Parent = lobby
+
+	ShopSystem:Build(lobby)
+	SpecialEvents:Build(lobby)
 
 	return lobby
 end

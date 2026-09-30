@@ -29,6 +29,9 @@ function RoundManager.new()
 	self.PlayerChoiceRemote = self.Remotes:FindFirstChild("PlayerChoice") or Instance.new("RemoteEvent")
 	self.PlayerChoiceRemote.Name = "PlayerChoice"
 	self.PlayerChoiceRemote.Parent = self.Remotes
+	self.RiskChoiceRemote = self.Remotes:FindFirstChild("RiskChoice") or Instance.new("RemoteEvent")
+	self.RiskChoiceRemote.Name = "RiskChoice"
+	self.RiskChoiceRemote.Parent = self.Remotes
 	self.AdminSystem = AdminSystem.new(self)
 	self.Choices = {}
 	self:BuildLobby()
@@ -73,6 +76,20 @@ function RoundManager:ConnectRemoteEvents()
 		self.ActiveRound.Choices[player.UserId] = index
 		self.RoundStateRemote:FireClient(player, "ChoiceLocked", index)
 		self.PlayerChoiceRemote:FireClient(player, "DoorChosen", doorName)
+	end)
+
+	self.RiskChoiceRemote.OnServerEvent:Connect(function(player, shouldRisk)
+		if not self.ActiveRound or self.ActiveRound.Status ~= "RiskDecision" then
+			return
+		end
+		if self.ActiveRound.RiskChoices == nil then
+			self.ActiveRound.RiskChoices = {}
+		end
+		if self.ActiveRound.RiskChoices[player.UserId] ~= nil then
+			return
+		end
+		self.ActiveRound.RiskChoices[player.UserId] = shouldRisk == true
+		self.RiskChoiceRemote:FireClient(player, "RiskRecorded", shouldRisk == true)
 	end)
 end
 
@@ -122,6 +139,8 @@ function RoundManager:StartRound()
 		Choices = {},
 		Status = "Choosing",
 		Room = room,
+		RiskChoices = {},
+		RiskReward = 0,
 	}
 	self:TeleportPlayersToRoom(room)
 	self.RoundStateRemote:FireAllClients("RoundStart", {
@@ -177,8 +196,12 @@ function RoundManager:ResolveRound()
 	local reward = Config.Rewards.RoundSurvival + math.floor(self.CurrentRound * 1.4)
 	if #survivors > 0 then
 		for _, player in ipairs(survivors) do
+			if player:GetAttribute("DoubleOrNothing") == true then
+				reward = reward * 2
+			end
 			PrizeSystem:AwardCoins(player, reward)
 			PrizeSystem:UpdateHighestRound(player, self.CurrentRound)
+			self.RiskChoiceRemote:FireClient(player, "RiskOffer", { Reward = reward, Mode = "DoubleOrNothing" })
 		end
 		self.RoundStateRemote:FireAllClients("RoundResult", {
 			Status = "Survivors",
@@ -186,6 +209,20 @@ function RoundManager:ResolveRound()
 			Count = #survivors,
 			Reward = reward,
 		})
+		self.ActiveRound.Status = "RiskDecision"
+		self.ActiveRound.RiskChoices = {}
+		self.ActiveRound.RiskReward = reward
+		for second = 5, 1, -1 do
+			if not self.ActiveRound or self.ActiveRound.Status ~= "RiskDecision" then
+				return
+			end
+			self.RoundStateRemote:FireAllClients("RiskTimer", second)
+			task.wait(1)
+		end
+		for _, player in ipairs(survivors) do
+			local risk = self.ActiveRound.RiskChoices[player.UserId] == true
+			player:SetAttribute("DoubleOrNothing", risk)
+		end
 	else
 		self.RoundStateRemote:FireAllClients("RoundResult", {
 			Status = "NoSurvivors",
@@ -194,7 +231,7 @@ function RoundManager:ResolveRound()
 		})
 	end
 
-	task.wait(4)
+	task.wait(2)
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
 			player.Character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
