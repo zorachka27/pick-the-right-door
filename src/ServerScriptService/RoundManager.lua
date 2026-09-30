@@ -5,6 +5,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(script.Parent.GameConfig)
 local RoomBuilder = require(script.Parent.RoomBuilder)
 local PrizeSystem = require(script.Parent.PrizeSystem)
+local AdminSystem = require(script.Parent.AdminSystem)
 
 local RoundManager = {}
 RoundManager.__index = RoundManager
@@ -26,6 +27,7 @@ function RoundManager.new()
 	self.PlayerChoiceRemote = self.Remotes:FindFirstChild("PlayerChoice") or Instance.new("RemoteEvent")
 	self.PlayerChoiceRemote.Name = "PlayerChoice"
 	self.PlayerChoiceRemote.Parent = self.Remotes
+	self.AdminSystem = AdminSystem.new(self)
 	self.Choices = {}
 	self:BuildLobby()
 	self:ConnectRemoteEvents()
@@ -71,6 +73,7 @@ function RoundManager:ConnectRemoteEvents()
 
 		self.ActiveRound.Choices[player.UserId] = index
 		self.RoundStateRemote:FireClient(player, "ChoiceLocked", index)
+		self.PlayerChoiceRemote:FireClient(player, "DoorChosen", doorName)
 	end)
 end
 
@@ -95,12 +98,6 @@ function RoundManager:SelectTheme()
 	end
 
 	return available[math.random(1, #available)]
-end
-
-function RoundManager:ClearChallengeRooms()
-	for _, obj in ipairs(self.RoomsFolder:GetChildren()) do
-		obj:Destroy()
-	end
 end
 
 function RoundManager:TeleportPlayersToRoom(room)
@@ -215,15 +212,6 @@ function RoundManager:ResolveRound()
 			SafeIndex = self.ActiveRound.SafeIndex,
 			Count = 0,
 		})
-	end
-
-	if #survivors > 0 then
-		local winnerCount = 0
-		for _, player in ipairs(survivors) do
-			if player == Players:GetPlayers()[1] then
-				winnerCount += 1
-			end
-		end
 	end
 
 	task.wait(4)
