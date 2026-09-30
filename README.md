@@ -1,57 +1,51 @@
 # Pick the Right Door!
 
-A Roblox multiplayer survival game prototype inspired by the concept you described. Players spawn in a lobby, wait for the next round, then choose the single safe door from a themed challenge room. Survivors earn coins, unlock progression, and survive longer into harder rounds.
+A Roblox multiplayer survival game prototype for the game concept you described. Players spawn in a lobby, wait for the challenge round to begin, then must choose the single safe door. Wrong doors trigger trap effects, and survivors earn coins, unlock progression, and keep climbing harder rounds.
 
-## Included systems
+## What is in this prototype
 
-- lobby builder
-- challenge room generation
-- round and intermission flow
-- safe door and elimination logic
-- themed trap system
-- coin and leaderstats tracking
-- high-level world progression and unlock structure
-- client HUD and round state feedback
-- admin system scaffolding for owner controls and special events
+- lobby spawn area and round environment setup
+- random challenge room generation
+- door setup and safe door logic
+- increasing difficulty as rounds progress
+- coin rewards and player progression tracking
+- world unlock progression
+- themed trap trigger support
+- admin/event foundation
+- client HUD for timer and round updates
 
-## Directory overview
+## Current feature set
 
-- `src/ServerScriptService/GameConfig.lua` — gameplay settings and world config
-- `src/ServerScriptService/RoomBuilder.lua` — lobby and room building tools
-- `src/ServerScriptService/PrizeSystem.lua` — coin, round, and win tracking
-- `src/ServerScriptService/RoundManager.lua` — gameplay loop and elimination logic
-- `src/ServerScriptService/AdminSystem.lua` — owner/admin controls and event hooks
-- `src/ServerScriptService/Bootstrap.server.lua` — bootstrap entry point
-- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` — HUD and client feedback
-- `docs/GAME_DESIGN.md` — full design doc for the game vision
+- 3 to 10 doors depending on round
+- round timer scaling downward over time
+- room themes: Castle, Volcano, Laboratory, Carnival, Underwater, Alien, and Space
+- safe-door survivor flow
+- wrong-door elimination flow
+- coin earning and leaderstats tracking
+- world progression with unlock requirements
+- admin commands for round control, message announcements, and player actions
+
+## Included code files
+
+- `src/ServerScriptService/GameConfig.lua` — gameplay settings, rewards, progression, and room themes
+- `src/ServerScriptService/RoomBuilder.lua` — lobby and challenge room building logic
+- `src/ServerScriptService/TrapEffects.lua` — wrong-door trap effects and hazard simulation
+- `src/ServerScriptService/WorldManager.lua` — world availability, unlock requirements, and theme selection
+- `src/ServerScriptService/PrizeSystem.lua` — coins, wins, highest round, and door survival tracking
+- `src/ServerScriptService/AdminSystem.lua` — admin controls and announcement support
+- `src/ServerScriptService/RoundManager.lua` — round loop, timer, and game progression
+- `src/ServerScriptService/Bootstrap.server.lua` — bootstrap for the server
+- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` — HUD and round state feedback
+- `docs/GAME_DESIGN.md` — full design document for the full game concept
 
 ## How to use in Roblox Studio
 
-1. Create a new Roblox place.
-2. Add the scripts in `src/ServerScriptService` to `ServerScriptService`.
-3. Add `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` to `StarterPlayer > StarterPlayerScripts`.
+1. Open a new Roblox place.
+2. Place the contents of `src/ServerScriptService` into `ServerScriptService`.
+3. Place the client script from `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` into `StarterPlayer > StarterPlayerScripts`.
 4. Press Play.
-5. Observe the lobby, the countdown, the challenge room, and the round progression.
+5. Test the lobby, intermission flow, challenge rooms, safe-door logic, and reward cycle.
 
-## Current prototype features
+## Notes
 
-- round-based survival flow
-- 3–10 door scaling by round
-- time-limited choices
-- room themes and door generation
-- winner/loser flow and reward distribution
-- lobby spawns and room teleportation
-- server/client communication for HUD updates
-- admin/event foundation for future gameplay controls
-
-## Planned next upgrades
-
-- improved lobby with actual shop, leaderboard, and NPC UI panels
-- animated trap effects per wrong door
-- cosmetic store and door skin selection
-- VIP/gamepass integration
-- admin panel in-game
-- special events such as Chaos Mode and Double Coin Weekend
-- double-or-nothing risk mode
-
-This repo now acts as a working prototype foundation for the full game concept you requested.
+This repository is now a polished starter prototype for the full “Pick the Right Door!” game you described. It is structured for future expansion into a larger lobby, cosmetics shop, world maps, special events, VIP monetization, and owner/admin tooling.

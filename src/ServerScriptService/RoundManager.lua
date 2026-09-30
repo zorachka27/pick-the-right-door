@@ -6,6 +6,8 @@ local Config = require(script.Parent.GameConfig)
 local RoomBuilder = require(script.Parent.RoomBuilder)
 local PrizeSystem = require(script.Parent.PrizeSystem)
 local AdminSystem = require(script.Parent.AdminSystem)
+local TrapEffects = require(script.Parent.TrapEffects)
+local WorldManager = require(script.Parent.WorldManager)
 
 local RoundManager = {}
 RoundManager.__index = RoundManager
@@ -40,7 +42,6 @@ function RoundManager:BuildLobby()
 	if not self.Lobby then
 		self.Lobby = RoomBuilder:CreateLobby()
 	end
-
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
 			player.Character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
@@ -53,6 +54,7 @@ function RoundManager:ConnectPlayerAdded()
 		player.CharacterAdded:Connect(function(character)
 			character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
 		end)
+		PrizeSystem:SetupPlayer(player)
 	end)
 end
 
@@ -61,16 +63,13 @@ function RoundManager:ConnectRemoteEvents()
 		if not self.ActiveRound or self.ActiveRound.Status ~= "Choosing" then
 			return
 		end
-
 		local index = tonumber(string.match(doorName or "", "(%d+)$"))
 		if not index then
 			return
 		end
-
 		if self.ActiveRound.Choices[player.UserId] then
 			return
 		end
-
 		self.ActiveRound.Choices[player.UserId] = index
 		self.RoundStateRemote:FireClient(player, "ChoiceLocked", index)
 		self.PlayerChoiceRemote:FireClient(player, "DoorChosen", doorName)
@@ -84,20 +83,7 @@ function RoundManager:GetRoundConfig(roundNumber)
 end
 
 function RoundManager:SelectTheme()
-	local available = {}
-	for _, world in ipairs(Config.Worlds) do
-		if self.CurrentRound >= world.RequiredWins then
-			for _, theme in ipairs(world.Themes) do
-				available[#available + 1] = theme
-			end
-		end
-	end
-
-	if #available == 0 then
-		return "Castle"
-	end
-
-	return available[math.random(1, #available)]
+	return WorldManager:SelectTheme(self.CurrentRound)
 end
 
 function RoundManager:TeleportPlayersToRoom(room)
@@ -115,12 +101,10 @@ function RoundManager:StartIntermission()
 		Round = self.CurrentRound,
 		Seconds = Config.IntermissionDuration,
 	})
-
 	for second = Config.IntermissionDuration, 1, -1 do
 		self.RoundStateRemote:FireAllClients("IntermissionTick", second)
 		task.wait(1)
 	end
-
 	self:StartRound()
 end
 
@@ -129,7 +113,6 @@ function RoundManager:StartRound()
 	local room = RoomBuilder:CreateChallengeRoom(theme, "Round_" .. self.CurrentRound)
 	local doorCount, timer = self:GetRoundConfig(self.CurrentRound)
 	local safeIndex = math.random(1, doorCount)
-
 	self.ActiveRound = {
 		Round = self.CurrentRound,
 		Theme = theme,
@@ -140,7 +123,6 @@ function RoundManager:StartRound()
 		Status = "Choosing",
 		Room = room,
 	}
-
 	self:TeleportPlayersToRoom(room)
 	self.RoundStateRemote:FireAllClients("RoundStart", {
 		Round = self.CurrentRound,
@@ -167,7 +149,6 @@ function RoundManager:StartRound()
 		self.RoundStateRemote:FireAllClients("TimerTick", second)
 		task.wait(1)
 	end
-
 	self:ResolveRound()
 end
 
@@ -175,10 +156,8 @@ function RoundManager:ResolveRound()
 	if not self.ActiveRound then
 		return
 	end
-
 	self.ActiveRound.Status = "Resolving"
 	local survivors = {}
-
 	for _, player in ipairs(Players:GetPlayers()) do
 		local selected = self.ActiveRound.Choices[player.UserId]
 		if selected == self.ActiveRound.SafeIndex then
@@ -189,7 +168,8 @@ function RoundManager:ResolveRound()
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
-				humanoid.Health = 0
+				local trapName = Config.RoomThemes[self.ActiveRound.Theme].Traps[math.random(1, #Config.RoomThemes[self.ActiveRound.Theme].Traps)]
+				TrapEffects:Execute(player, trapName, self.ActiveRound.Room)
 			end
 		end
 	end
@@ -215,13 +195,11 @@ function RoundManager:ResolveRound()
 	end
 
 	task.wait(4)
-
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
 			player.Character:PivotTo(CFrame.new(Config.LobbySpawnPosition))
 		end
 	end
-
 	self.ActiveRound = nil
 	self:StartIntermission()
 end

@@ -64,11 +64,9 @@ function AdminSystem:IsAuthorized(player)
 	if not player then
 		return false
 	end
-
 	if player.UserId == game.CreatorId then
 		return true
 	end
-
 	return player:GetAttribute("IsAdmin") == true
 end
 
@@ -76,7 +74,6 @@ function AdminSystem:FindPlayerByName(name)
 	if typeof(name) ~= "string" then
 		return nil
 	end
-
 	local targetName = string.lower(name)
 	for _, player in ipairs(Players:GetPlayers()) do
 		if string.lower(player.Name) == targetName then
@@ -90,7 +87,6 @@ function AdminSystem:Announce(message)
 	if typeof(message) ~= "string" then
 		return
 	end
-
 	for _, player in ipairs(Players:GetPlayers()) do
 		local gui = player:FindFirstChildOfClass("PlayerGui")
 		if gui then
@@ -101,7 +97,6 @@ function AdminSystem:Announce(message)
 				billboard.ResetOnSpawn = false
 				billboard.Parent = gui
 			end
-
 			local frame = billboard:FindFirstChild("Frame") or Instance.new("Frame")
 			frame.Name = "Frame"
 			frame.Size = UDim2.new(0.5, 0, 0, 80)
@@ -109,7 +104,6 @@ function AdminSystem:Announce(message)
 			frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 			frame.BorderSizePixel = 0
 			frame.Parent = billboard
-
 			local label = frame:FindFirstChild("Label") or Instance.new("TextLabel")
 			label.Name = "Label"
 			label.Size = UDim2.new(1, -20, 1, -20)
@@ -120,7 +114,6 @@ function AdminSystem:Announce(message)
 			label.TextScaled = true
 			label.TextColor3 = Color3.fromRGB(255, 220, 120)
 			label.Parent = frame
-
 			frame.Parent = billboard
 		end
 	end
